@@ -2,6 +2,7 @@ package com.shivu.userapplication.service;
 
 import com.shivu.userapplication.exception.ResourceNotFoundException;
 import com.shivu.userapplication.exception.UserAlreadyExistsException;
+import com.shivu.userapplication.exception.UserNotFoundException;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -52,10 +53,6 @@ public class AuthenticationService {
 		}
 
 		String encodedPassword = passwordEncoder.encode(password);
-		Role userRole = roleRepository.findFirstByAuthority("USER")
-				.orElseThrow(() -> new ResourceNotFoundException("Default role 'USER' not found"));
-		Role generalRole = roleRepository.findFirstByAuthority("GENERAL")
-				.orElseThrow(() -> new ResourceNotFoundException("Default role 'GENERAL' not found"));
 
 		Department userDepartment;
 		if (departmentName != null && !departmentName.isEmpty()) {
@@ -73,16 +70,13 @@ public class AuthenticationService {
 		}
 
 		Set<Role> authorities = new HashSet<>();
-		authorities.add(userRole);
-		authorities.add((generalRole));
+		// No roles assigned initially. User must be approved by admin.
+
 		String resetPasswordToken = null;
-		// Status is PENDING by default via constructor logic or field initialization,
-		// assuming ApplicationUser sets it to PENDING if not specified,
-		// or we allow standard constructor which sets status to pending/null.
-		// The original code passed 0 as ID.
-		return userRepository
-				.save(new ApplicationUser(0, username, encodedPassword, authorities, userDepartment, email,
-						resetPasswordToken));
+		ApplicationUser newUser = new ApplicationUser(0, username, encodedPassword, authorities, userDepartment, email,
+				resetPasswordToken);
+		newUser.setStatus(ApplicationUser.UserStatus.PENDING);
+		return userRepository.save(newUser);
 	}
 
 	public LoginResponseDTO loginUser(String username, String password) {
@@ -90,9 +84,19 @@ public class AuthenticationService {
 		try {
 			Authentication auth = authenticationManager
 					.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+
+			ApplicationUser user = userRepository.findByUsername(username)
+					.orElseThrow(() -> new UserNotFoundException("User not found"));
+
+			if (user.getStatus() == ApplicationUser.UserStatus.PENDING) {
+				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account is awaiting admin approval");
+			} else if (user.getStatus() == ApplicationUser.UserStatus.REJECTED) {
+				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account has been rejected");
+			}
+
 			String token = tokenService.generateJwt(auth);
-			System.out.println(userRepository.findByUsername(username).get().getDepartment().getDepartmentName());
-			return new LoginResponseDTO(userRepository.findByUsername(username).get(), token);
+			System.out.println(user.getDepartment().getDepartmentName());
+			return new LoginResponseDTO(user, token);
 
 		} catch (AuthenticationException e) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials!");
