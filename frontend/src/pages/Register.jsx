@@ -94,8 +94,8 @@ const Register = () => {
         const result = await register(formData.username, formData.password, formData.email, formData.department);
 
         if (result.success) {
-            setSuccess('Registration successful! Redirecting to login...');
-            setTimeout(() => navigate('/login'), 2000);
+            setSuccess('Registration successful! Redirecting to approval page...');
+            setTimeout(() => navigate('/pending'), 2000);
         } else {
             setError(result.error);
         }

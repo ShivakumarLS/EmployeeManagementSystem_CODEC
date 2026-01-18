@@ -43,6 +43,10 @@ const Login = () => {
             navigate(from, { replace: true });
         } else {
             const cleanMsg = cleanErrorMessage(result.error);
+            if (cleanMsg.toLowerCase().includes('awaiting admin approval')) {
+                navigate('/pending');
+                return;
+            }
             showToast('danger', 'Login Failed', cleanMsg);
         }
 

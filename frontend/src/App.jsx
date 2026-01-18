@@ -11,6 +11,7 @@ import PayrollPanel from './pages/PayrollPanel';
 import FinancePanel from './pages/FinancePanel';
 import SalesPanel from './pages/SalesPanel';
 import ITPanel from './pages/ITPanel';
+import PendingApproval from './pages/PendingApproval';
 import './App.css';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/pending" element={<PendingApproval />} />
               <Route
                 path="/dashboard"
                 element={
