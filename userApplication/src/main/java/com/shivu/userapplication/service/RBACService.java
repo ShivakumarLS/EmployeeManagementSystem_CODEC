@@ -30,10 +30,12 @@ public class RBACService {
         @Autowired
         DepartmentRepository departmentRepository;
 
+        @Autowired
+        org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
         @PostConstruct
         public void ensureAdminUsersAreActive() {
                 // Fix for existing admin users who may have PENDING status
-                // This ensures admin users can always log in
                 userRepository.findAll().stream()
                                 .filter(user -> user.getAuthorities().stream()
                                                 .anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN")))
@@ -42,6 +44,73 @@ public class RBACService {
                                         user.setStatus(UserStatus.ACTIVE);
                                         userRepository.save(user);
                                         System.out.println("Activated admin user: " + user.getUsername());
+                                });
+
+                // Ensure default users exist, have correct password, and are ACTIVE
+                ensureDefaultUsersExist();
+        }
+
+        private void ensureDefaultUsersExist() {
+                if (roleRepository.count() == 0 || departmentRepository.count() == 0) {
+                        initialize(); // Ensure roles/depts exist first
+                }
+
+                String password = "password";
+
+                // Create or Update Default Users
+                createOrUpdateUser("testUser", "PAYROLL", "PAYROLL", password);
+
+                createOrUpdateUser("payroll1", "PAYROLL", "PAYROLL", password);
+                createOrUpdateUser("payroll2", "PAYROLL", "PAYROLL", password);
+
+                createOrUpdateUser("hr1", "HR", "HR", password);
+                createOrUpdateUser("hr2", "HR", "HR", password);
+
+                createOrUpdateUser("finance1", "FINANCE", "FINANCE", password);
+                createOrUpdateUser("finance2", "FINANCE", "FINANCE", password);
+
+                createOrUpdateUser("sales1", "SALES", "SALES", password);
+                createOrUpdateUser("sales2", "SALES", "SALES", password);
+
+                createOrUpdateUser("it1", "IT", "IT", password);
+                createOrUpdateUser("it2", "IT", "IT", password);
+        }
+
+        private void createOrUpdateUser(String username, String roleName, String deptName, String plainPassword) {
+                // Check if user exists
+                userRepository.findByUsername(username).ifPresentOrElse(
+                                user -> {
+                                        // Update User
+                                        user.setPassword(passwordEncoder.encode(plainPassword));
+                                        if (user.getStatus() != UserStatus.ACTIVE) {
+                                                user.setStatus(UserStatus.ACTIVE);
+                                        }
+                                        userRepository.save(user);
+                                        System.out.println("Updated default user: " + username);
+                                },
+                                () -> {
+                                        // Create New User
+                                        Department dept = departmentRepository.findFirstByDepartmentName(deptName)
+                                                        .orElseGet(() -> departmentRepository
+                                                                        .save(new Department(deptName)));
+
+                                        Set<Role> roles = new HashSet<>();
+                                        roleRepository.findFirstByAuthority(roleName).ifPresent(roles::add);
+                                        roleRepository.findFirstByAuthority("GENERAL").ifPresent(roles::add);
+
+                                        String encoded = passwordEncoder.encode(plainPassword);
+
+                                        // Use constructor without ID to let DB generate unique ID
+                                        ApplicationUser newUser = new ApplicationUser(
+                                                        username,
+                                                        encoded,
+                                                        roles,
+                                                        dept,
+                                                        username + "@email.com",
+                                                        null);
+                                        newUser.setStatus(UserStatus.ACTIVE);
+                                        userRepository.save(newUser);
+                                        System.out.println("Created default user: " + username);
                                 });
         }
 
@@ -52,10 +121,6 @@ public class RBACService {
                 }
                 if (departmentRepository.count() == 0) {
                         initialiseDepartments();
-                }
-                // Only create test users if users table is empty
-                if (userRepository.count() == 0) {
-                        assignRolesToDepartments();
                 }
         }
 
@@ -91,66 +156,6 @@ public class RBACService {
                 if (departmentRepository.findFirstByDepartmentName(deptName).isEmpty()) {
                         departmentRepository.save(new Department(deptName));
                 }
-        }
-
-        public void assignRolesToDepartments() {
-                List<Role> roles = new ArrayList<>();
-                roles = roleRepository.findAll();
-                List<Department> departments = new ArrayList<>();
-                departments = departmentRepository.findAll();
-
-                Set<Role> userRole = new HashSet<>();
-                userRole.add(roles.get(1));
-
-                Set<Role> payrollRole = new HashSet<>();
-                payrollRole.add(roles.get(2));
-                payrollRole.add(roles.get(6));
-
-                Set<Role> hrROle = new HashSet<>();
-                hrROle.add(roles.get(3));
-                hrROle.add(roles.get(6));
-
-                Set<Role> financeRole = new HashSet<>();
-                financeRole.add(roles.get(4));
-                financeRole.add(roles.get(6));
-
-                Set<Role> salesRole = new HashSet<>();
-                salesRole.add(roles.get(5));
-                salesRole.add(roles.get(6));
-
-                Set<Role> itRole = new HashSet<>();
-                itRole.add(roles.get(7));
-                itRole.add(roles.get(6));
-
-                String password = "$2a$10$uS8T6TSRun9UocX9snIQIOd97Yr91jmPUOEepDgzJnqPRTVzcn10q";
-                userRepository.save(new ApplicationUser(4, "testUser", password,
-                                userRole, departments.get(2), "User@email.com", null));
-
-                userRepository.save(new ApplicationUser(4, "payroll1", password,
-                                payrollRole, departments.get(2), "payroll1@email.com", null));
-                userRepository.save(new ApplicationUser(4, "payroll2", password,
-                                payrollRole, departments.get(2), "payroll2@email.com", null));
-
-                userRepository.save(new ApplicationUser(5, "hr1", password,
-                                hrROle, departments.get(3), "hr1@email.com", null));
-                userRepository.save(new ApplicationUser(6, "hr2", password,
-                                hrROle, departments.get(3), "hr2@email.com", null));
-
-                userRepository.save(new ApplicationUser(7, "finance1", password,
-                                financeRole, departments.get(4), "finance1@email.com", null));
-                userRepository.save(new ApplicationUser(8, "finance2", password,
-                                financeRole, departments.get(4), "finance2@email.com", null));
-
-                userRepository.save(new ApplicationUser(9, "sales1", password,
-                                salesRole, departments.get(5), "sales1@email.com", null));
-                userRepository.save(new ApplicationUser(10, "sales2", password,
-                                salesRole, departments.get(5), "sales2@email.com", null));
-
-                userRepository.save(new ApplicationUser(11, "it1", password,
-                                itRole, departments.get(7), "it1@email.com", null));
-                userRepository.save(new ApplicationUser(12, "it2", password,
-                                itRole, departments.get(7), "it2@email.com", null));
-
         }
 
 }

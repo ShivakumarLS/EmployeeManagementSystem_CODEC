@@ -42,8 +42,7 @@ public class SecurityConfiguration {
     @Autowired
     DepartmentService departmentService;
 
-    @Autowired
-    RBACService rbacService;
+    // RBACService removed to avoid circular dependency with PasswordEncoder
 
     private final RSAKeyProperties keys;
 

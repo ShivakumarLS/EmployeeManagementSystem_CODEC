@@ -32,7 +32,6 @@ public class RBACController {
         return "HR level Access";
     }
 
-   
     @GetMapping("/Payroll")
     @PreAuthorize("hasRole('PAYROLL')")
     public String getPayroll() {
@@ -93,11 +92,19 @@ public class RBACController {
         String userName = SecurityContextHolder.getContext().getAuthentication().getName();
         System.out.println(userName);
         List<ApplicationUser> users = userRepository.findAll();
-        List<DisplayEmployees> showUsers =  users.stream().
-                    map(displayUser -> new DisplayEmployees(displayUser.getUsername(),
+
+        List<DisplayEmployees> showUsers = users.stream()
+                // Filter out users who ONLY have "USER" or "GENERAL" roles
+                // i.e. Include users who have at least one role that is NOT "USER" and NOT
+                // "GENERAL"
+                .filter(user -> user.getAuthorities().stream()
+                        .anyMatch(
+                                role -> !role.getAuthority().equals("USER") && !role.getAuthority().equals("GENERAL")))
+                .map(displayUser -> new DisplayEmployees(displayUser.getUsername(),
                         displayUser.getDepartment().getDepartmentName(),
                         displayUser.getAuthorities()))
-                        .collect(Collectors.toList());
+                .collect(Collectors.toList());
+
         return showUsers;
     }
 
