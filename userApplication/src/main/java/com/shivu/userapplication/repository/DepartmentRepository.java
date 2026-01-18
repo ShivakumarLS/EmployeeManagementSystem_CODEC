@@ -8,9 +8,12 @@ import org.springframework.stereotype.Repository;
 import com.shivu.userapplication.model.Department;
 
 @Repository
-public interface DepartmentRepository   extends JpaRepository<Department,Integer>{
-   
-   // HashSet<ApplicationUser> findUsersByDepartment(int  departmentId) throws UserNotFoundException;
+public interface DepartmentRepository extends JpaRepository<Department, Integer> {
+
+   // HashSet<ApplicationUser> findUsersByDepartment(int departmentId) throws
+   // UserNotFoundException;
+
+   Optional<Department> findFirstByDepartmentName(String departmentName);
 
    Optional<Department> findByDepartmentName(String departmentName);
 }

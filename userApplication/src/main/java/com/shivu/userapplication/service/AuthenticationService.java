@@ -1,5 +1,8 @@
 package com.shivu.userapplication.service;
 
+import com.shivu.userapplication.exception.ResourceNotFoundException;
+import com.shivu.userapplication.exception.UserAlreadyExistsException;
+
 import java.util.HashSet;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,19 +46,43 @@ public class AuthenticationService {
 	@Autowired
 	DepartmentRepository departmentRepository;
 
-	public ApplicationUser registerUser(String username, String password, String email) throws  Exception {
+	public ApplicationUser registerUser(String username, String password, String email, String departmentName) {
+		if (userRepository.findByUsername(username).isPresent()) {
+			throw new UserAlreadyExistsException("User with username " + username + " already exists");
+		}
 
 		String encodedPassword = passwordEncoder.encode(password);
-		Role userRole = roleRepository.findByAuthority("USER").get();
-		Role generalRole = roleRepository.findByAuthority("GENERAL").get();
-		Department userDepartment = new Department(2,"USER");
-		departmentRepository.save(userDepartment);
+		Role userRole = roleRepository.findFirstByAuthority("USER")
+				.orElseThrow(() -> new ResourceNotFoundException("Default role 'USER' not found"));
+		Role generalRole = roleRepository.findFirstByAuthority("GENERAL")
+				.orElseThrow(() -> new ResourceNotFoundException("Default role 'GENERAL' not found"));
+
+		Department userDepartment;
+		if (departmentName != null && !departmentName.isEmpty()) {
+			userDepartment = departmentRepository.findFirstByDepartmentName(departmentName)
+					.orElseGet(() -> {
+						Department newDept = new Department(departmentName);
+						return departmentRepository.save(newDept);
+					});
+		} else {
+			userDepartment = departmentRepository.findFirstByDepartmentName("USER")
+					.orElseGet(() -> {
+						Department newDept = new Department(2, "USER");
+						return departmentRepository.save(newDept);
+					});
+		}
+
 		Set<Role> authorities = new HashSet<>();
 		authorities.add(userRole);
 		authorities.add((generalRole));
 		String resetPasswordToken = null;
+		// Status is PENDING by default via constructor logic or field initialization,
+		// assuming ApplicationUser sets it to PENDING if not specified,
+		// or we allow standard constructor which sets status to pending/null.
+		// The original code passed 0 as ID.
 		return userRepository
-				.save(new ApplicationUser(0, username, encodedPassword, authorities,userDepartment,email, resetPasswordToken));
+				.save(new ApplicationUser(0, username, encodedPassword, authorities, userDepartment, email,
+						resetPasswordToken));
 	}
 
 	public LoginResponseDTO loginUser(String username, String password) {
@@ -68,7 +95,7 @@ public class AuthenticationService {
 			return new LoginResponseDTO(userRepository.findByUsername(username).get(), token);
 
 		} catch (AuthenticationException e) {
-			throw  new  ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials!");
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials!");
 		}
 	}
 }

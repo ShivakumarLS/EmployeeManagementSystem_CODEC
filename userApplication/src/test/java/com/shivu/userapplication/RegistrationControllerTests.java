@@ -27,7 +27,7 @@ import com.shivu.userapplication.service.AuthenticationService;
 public class RegistrationControllerTests {
     @InjectMocks
     private RegistrationController registrationController;
-    
+
     @Mock
     private AuthenticationService authenticationService;
 
@@ -37,7 +37,7 @@ public class RegistrationControllerTests {
     @SuppressWarnings("deprecation")
     @BeforeEach
     public void setUp() {
-       
+
         MockitoAnnotations.initMocks(this);
     }
 
@@ -46,7 +46,7 @@ public class RegistrationControllerTests {
         Model model = mock(Model.class);
         String result = registrationController.showRegistrationForm(model);
         assertEquals("registration", result);
-        
+
         verify(model).addAttribute(eq("RegistrationDTOform"), any(RegistrationDTO.class));
     }
 
@@ -54,13 +54,13 @@ public class RegistrationControllerTests {
     public void testRegisterUser_Success() throws Exception {
         Model model = mock(Model.class);
         RegistrationDTO user = new RegistrationDTO("username", "password", "email");
-       
+
         when(userRepository.findByUsername("username")).thenReturn(java.util.Optional.empty());
 
         String result = registrationController.registerUser(user, model);
 
         assertEquals("redirect:/auth/register?success", result);
-        verify(authenticationService).registerUser("username", "password", "email");
+        verify(authenticationService).registerUser("username", "password", "email", null);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class RegistrationControllerTests {
         String result = registrationController.registerUser(user, model);
 
         assertEquals("redirect:/auth/register?userpresent", result);
-        verify(authenticationService, never()).registerUser(anyString(), anyString(), anyString());
-       
+        verify(authenticationService, never()).registerUser(anyString(), anyString(), anyString(), any());
+
     }
 }

@@ -25,7 +25,7 @@ public class DepartmentService {
     }
 
     public Department getByDepartmentName(String departmentName) {
-        return departmentRepository.findByDepartmentName(departmentName).orElseThrow();
+        return departmentRepository.findFirstByDepartmentName(departmentName).orElseThrow();
     }
 
 }

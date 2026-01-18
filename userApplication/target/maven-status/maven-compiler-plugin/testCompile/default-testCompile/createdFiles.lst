@@ -1,0 +1,6 @@
+com\shivu\userapplication\RegistrationControllerTests.class
+com\shivu\userapplication\UserControllerTests.class
+com\shivu\userapplication\LoginControllerTests.class
+com\shivu\userapplication\RBACControllerTests.class
+com\shivu\userapplication\AdminControllerTests.class
+com\shivu\userapplication\AuthenticationControllerTests.class

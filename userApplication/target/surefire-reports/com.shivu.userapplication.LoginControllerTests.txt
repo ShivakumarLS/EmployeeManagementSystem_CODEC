@@ -1,0 +1,14 @@
+-------------------------------------------------------------------------------
+Test set: com.shivu.userapplication.LoginControllerTests
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.206 s <<< FAILURE! - in com.shivu.userapplication.LoginControllerTests
+testLoginUser  Time elapsed: 0.062 s  <<< FAILURE!
+org.mockito.exceptions.verification.WantedButNotInvoked: 
+
+Wanted but not invoked:
+response.addHeader("token", "jwt_token");
+-> at com.shivu.userapplication.LoginControllerTests.testLoginUser(LoginControllerTests.java:62)
+Actually, there were zero interactions with this mock.
+
+	at com.shivu.userapplication.LoginControllerTests.testLoginUser(LoginControllerTests.java:62)
+

@@ -29,6 +29,8 @@ import com.shivu.userapplication.model.Department;
 import com.shivu.userapplication.model.Role;
 import com.shivu.userapplication.repository.RoleRepository;
 import com.shivu.userapplication.repository.UserRepository;
+import com.shivu.userapplication.exception.ResourceNotFoundException;
+import com.shivu.userapplication.exception.UserNotFoundException;
 
 @SpringBootTest
 public class AdminControllerTests {
@@ -75,10 +77,8 @@ public class AdminControllerTests {
         assertEquals(users, actual);
     }
 
-
     @Test
-    public void testGetUsersByDepartment() throws Exception
-    {
+    public void testGetUsersByDepartment() throws Exception {
         Department dept = new Department(0, "mockdept");
         Role role = new Role(1, "mockrole");
         Set<Role> roles = new HashSet<>(Set.of(role));
@@ -88,10 +88,11 @@ public class AdminControllerTests {
                 dept, "mockemail@gmail.com", null);
         ApplicationUser user3 = new ApplicationUser("mockname3", "mockpass", roles,
                 dept, "mockemail@gmail.com", null);
-        ArrayList<ApplicationUser> users = new ArrayList<>(List.of(user1,user2,user3));
+        ArrayList<ApplicationUser> users = new ArrayList<>(List.of(user1, user2, user3));
         when(userRepository.findAllByDepartmentName(anyString())).thenReturn(users);
-        assertEquals(users,adminController.getUsersByDepartment("department"));
+        assertEquals(users, adminController.getUsersByDepartment("department"));
     }
+
     @Test
     public void testGetUserById() throws Exception {
 
@@ -111,12 +112,8 @@ public class AdminControllerTests {
     public void testDeleteUserById_UserNotFound() {
         when(userRepository.findByUsername("nonexistentusername")).thenReturn(Optional.empty());
 
-        assertThrows(Exception.class, () -> 
-            adminController.deleteUserById("nonexistentusername")
-        );
+        assertThrows(UserNotFoundException.class, () -> adminController.deleteUserById("nonexistentusername"));
     }
-
-   
 
     @Test
     public void testDeleteUserById() throws Exception {
@@ -127,12 +124,12 @@ public class AdminControllerTests {
     }
 
     @Test
-    public void testDeleteUsers() throws Exception {
+    public void testDeleteUsers() {
         when(userRepository.findAll()).thenReturn(new ArrayList<>());
-        Exception exception = assertThrows(Exception.class, () -> {
+        Exception exception = assertThrows(ResourceNotFoundException.class, () -> {
             adminController.deleteUsers();
         });
-        assertEquals("Record is Empty", exception.getMessage());
+        assertEquals("No users record found to delete", exception.getMessage());
     }
 
     @Test
@@ -143,6 +140,5 @@ public class AdminControllerTests {
         ApplicationUser actual = adminController.update("username", user);
         assertEquals(user, actual);
     }
-
 
 }

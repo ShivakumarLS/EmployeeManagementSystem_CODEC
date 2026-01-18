@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.shivu.userapplication.model.ApplicationUser;
+import com.shivu.userapplication.model.ApplicationUser.UserStatus;
+
+import jakarta.annotation.PostConstruct;
 import com.shivu.userapplication.model.Department;
 import com.shivu.userapplication.model.Role;
 import com.shivu.userapplication.repository.DepartmentRepository;
@@ -27,39 +30,70 @@ public class RBACService {
         @Autowired
         DepartmentRepository departmentRepository;
 
-        public void initialize() 
-        {
-        
-                initialiseRoles();
-                initialiseDepartments();
-                assignRolesToDepartments();
-        
+        @PostConstruct
+        public void ensureAdminUsersAreActive() {
+                // Fix for existing admin users who may have PENDING status
+                // This ensures admin users can always log in
+                userRepository.findAll().stream()
+                                .filter(user -> user.getAuthorities().stream()
+                                                .anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN")))
+                                .filter(user -> user.getStatus() != UserStatus.ACTIVE)
+                                .forEach(user -> {
+                                        user.setStatus(UserStatus.ACTIVE);
+                                        userRepository.save(user);
+                                        System.out.println("Activated admin user: " + user.getUsername());
+                                });
+        }
+
+        public void initialize() {
+                // Only initialize if roles don't exist yet
+                if (roleRepository.count() == 0) {
+                        initialiseRoles();
+                }
+                if (departmentRepository.count() == 0) {
+                        initialiseDepartments();
+                }
+                // Only create test users if users table is empty
+                if (userRepository.count() == 0) {
+                        assignRolesToDepartments();
+                }
         }
 
         public void initialiseRoles() {
-                roleRepository.save(new Role("ADMIN"));
-                roleRepository.save(new Role("USER"));
-                roleRepository.save(new Role("PAYROLL"));
-                roleRepository.save(new Role("HR"));
-                roleRepository.save(new Role("FINANCE"));
-                roleRepository.save(new Role("SALES"));
-                roleRepository.save(new Role("GENERAL"));
-                roleRepository.save(new Role("IT"));
+                saveRoleIfNotExists("ADMIN");
+                saveRoleIfNotExists("USER");
+                saveRoleIfNotExists("PAYROLL");
+                saveRoleIfNotExists("HR");
+                saveRoleIfNotExists("FINANCE");
+                saveRoleIfNotExists("SALES");
+                saveRoleIfNotExists("GENERAL");
+                saveRoleIfNotExists("IT");
+        }
+
+        private void saveRoleIfNotExists(String authority) {
+                if (roleRepository.findFirstByAuthority(authority).isEmpty()) {
+                        roleRepository.save(new Role(authority));
+                }
         }
 
         public void initialiseDepartments() {
-                departmentRepository.save(new Department("ADMIN"));
-                departmentRepository.save(new Department("USER"));
-                departmentRepository.save(new Department("PAYROLL"));
-                departmentRepository.save(new Department("HR"));
-                departmentRepository.save(new Department("FINANCE"));
-                departmentRepository.save(new Department("SALES"));
-                departmentRepository.save(new Department("GENERAL"));
-                departmentRepository.save(new Department("IT"));
+                saveDeptIfNotExists("ADMIN");
+                saveDeptIfNotExists("USER");
+                saveDeptIfNotExists("PAYROLL");
+                saveDeptIfNotExists("HR");
+                saveDeptIfNotExists("FINANCE");
+                saveDeptIfNotExists("SALES");
+                saveDeptIfNotExists("GENERAL");
+                saveDeptIfNotExists("IT");
         }
 
-        public void assignRolesToDepartments()
-        {
+        private void saveDeptIfNotExists(String deptName) {
+                if (departmentRepository.findFirstByDepartmentName(deptName).isEmpty()) {
+                        departmentRepository.save(new Department(deptName));
+                }
+        }
+
+        public void assignRolesToDepartments() {
                 List<Role> roles = new ArrayList<>();
                 roles = roleRepository.findAll();
                 List<Department> departments = new ArrayList<>();
@@ -116,7 +150,7 @@ public class RBACService {
                                 itRole, departments.get(7), "it1@email.com", null));
                 userRepository.save(new ApplicationUser(12, "it2", password,
                                 itRole, departments.get(7), "it2@email.com", null));
-       
+
         }
 
 }
