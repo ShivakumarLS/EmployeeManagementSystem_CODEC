@@ -26,7 +26,6 @@ import com.shivu.userapplication.repository.RoleRepository;
 import com.shivu.userapplication.repository.UserRepository;
 
 @Service
-@Transactional
 public class AuthenticationService {
 
 	@Autowired
@@ -47,6 +46,7 @@ public class AuthenticationService {
 	@Autowired
 	DepartmentRepository departmentRepository;
 
+	@Transactional
 	public ApplicationUser registerUser(String username, String password, String email, String departmentName) {
 		if (userRepository.findByUsername(username).isPresent()) {
 			throw new UserAlreadyExistsException("User with username " + username + " already exists");
@@ -82,17 +82,17 @@ public class AuthenticationService {
 	public LoginResponseDTO loginUser(String username, String password) {
 
 		try {
-			Authentication auth = authenticationManager
-					.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-
 			ApplicationUser user = userRepository.findByUsername(username)
 					.orElseThrow(() -> new UserNotFoundException("User not found"));
 
 			if (user.getStatus() == ApplicationUser.UserStatus.PENDING) {
-				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account is awaiting admin approval");
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is awaiting admin approval");
 			} else if (user.getStatus() == ApplicationUser.UserStatus.REJECTED) {
-				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account has been rejected");
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account has been rejected");
 			}
+
+			Authentication auth = authenticationManager
+					.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
 			String token = tokenService.generateJwt(auth);
 			System.out.println(user.getDepartment().getDepartmentName());
